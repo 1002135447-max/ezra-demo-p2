@@ -1,4 +1,40 @@
-https://1002135447-max.github.io/ezra-demo-p2/            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>מסע בדמוקרטיה - תרגול לבגרות באזרחות</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Rubik -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .custom-card {
+            background: #ffffff;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            border: 2px solid #e2e8f0;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .custom-card:hover {
@@ -422,19 +458,8 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Primary Artifact App ID & Firebase Config setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game-global';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyDemoKeyOnlyForFallback12345",
-            authDomain: "demo-app.firebaseapp.com",
-            projectId: "demo-app",
-            storageBucket: "demo-app.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
-        };
-
-        // Fallback REST endpoint for Google Sites / external iframe embedding
-        const REST_CLOUD_ENDPOINT = "https://api.restful-api.dev/objects";
-        const SHARED_STORAGE_KEY = "civics_democracy_scores_v3";
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game-v1';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
         let app = null;
         let auth = null;
@@ -443,33 +468,40 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
         let authPromise = null;
         let inMemoryScores = [];
 
+        // Ensure user is authenticated before Firestore operations
         async function ensureAuth() {
             if (currentUser) return currentUser;
             if (!authPromise) {
-                authPromise = new Promise((resolve) => {
+                authPromise = new Promise(async (resolve) => {
                     try {
+                        if (!firebaseConfig) {
+                            console.warn("Firebase config missing");
+                            resolve(null);
+                            return;
+                        }
+
                         if (!app) {
                             app = initializeApp(firebaseConfig);
                             auth = getAuth(app);
                             db = getFirestore(app);
                         }
 
-                        onAuthStateChanged(auth, (user) => {
-                            if (user) {
-                                currentUser = user;
-                                resolve(user);
-                            }
-                        });
-
                         const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                         if (initialToken) {
-                            signInWithCustomToken(auth, initialToken)
-                                .then(cred => resolve(cred.user))
-                                .catch(() => signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null)));
-                        } else {
-                            signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null));
+                            try {
+                                const cred = await signInWithCustomToken(auth, initialToken);
+                                currentUser = cred.user;
+                                resolve(cred.user);
+                                return;
+                            } catch (e) {
+                                console.warn("Custom token login failed, falling back to anonymous auth:", e);
+                            }
                         }
-                    } catch(e) {
+
+                        const anonCred = await signInAnonymously(auth);
+                        currentUser = anonCred.user;
+                        resolve(anonCred.user);
+                    } catch (e) {
                         console.error("Auth init exception:", e);
                         resolve(null);
                     }
@@ -647,6 +679,7 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
         let studentName = "";
         let studentClass = "";
         let allScoresCache = [];
+        let unsubscribeScoresListener = null;
 
         function getLocalScores() {
             try {
@@ -980,10 +1013,11 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
             const scoreData = {
                 studentName: studentName || 'תלמיד/ה אנונימי/ת',
                 studentClass: studentClass || 'כללי',
-                score: finalScore,
-                correctCount: correctCount,
+                score: Number(finalScore),
+                correctCount: Number(correctCount),
                 totalQuestions: questionsData.length,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                createdAt: Date.now()
             };
 
             // Save locally immediately
@@ -991,7 +1025,7 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
 
             let savedToCloud = false;
 
-            // 1. Primary Cloud Save: Firebase Firestore
+            // Save to Firestore Cloud Collection
             try {
                 const user = await ensureAuth();
                 if (db && user) {
@@ -1001,24 +1035,7 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
                     savedToCloud = true;
                 }
             } catch (e) {
-                console.warn("Primary Firestore save skipped or unconfigured:", e);
-            }
-
-            // 2. Secondary Cloud Save: Public REST Endpoint Fallback (Works in Google Sites iframes)
-            try {
-                const res = await fetch(REST_CLOUD_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: SHARED_STORAGE_KEY,
-                        data: scoreData
-                    })
-                });
-                if (res.ok) {
-                    savedToCloud = true;
-                }
-            } catch (e) {
-                console.warn("REST Cloud backup fallback skipped:", e);
+                console.error("Firestore score save error:", e);
             }
 
             if (savedToCloud) {
@@ -1026,90 +1043,63 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
                 statusText.innerText = "הציון נשמר בענן בהצלחה וזמין למורה בכל עת!";
             } else {
-                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
-                statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשמר במכשיר בהצלחה!";
+                statusBox.className = "bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+                statusIcon.className = "fa-solid fa-triangle-exclamation text-amber-600 text-base";
+                statusText.innerText = "הציון נשמר במכשיר המקומי. ניתן להעתיק דוח למורה.";
             }
 
-            renderTeacherScores();
-        }
-
-        async function fetchAllScoresFromCloud() {
-            const combinedScoresMap = new Map();
-
-            // Load local & memory scores first
-            [...getLocalScores(), ...inMemoryScores].forEach(item => {
-                if (item && item.studentName && item.timestamp) {
-                    const key = `${item.studentName}_${item.timestamp}`;
-                    combinedScoresMap.set(key, item);
-                }
-            });
-
-            // 1. Fetch from Firestore
-            try {
-                const user = await ensureAuth();
-                if (db && user) {
-                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                    const snapshot = await getDocs(scoresColl);
-                    snapshot.forEach(docSnap => {
-                        const data = docSnap.data();
-                        if (data && data.studentName && data.timestamp) {
-                            const key = `${data.studentName}_${data.timestamp}`;
-                            combinedScoresMap.set(key, data);
-                        }
-                    });
-                }
-            } catch(e) {
-                console.warn("Firestore fetch notice:", e);
-            }
-
-            // 2. Fetch from REST Backup
-            try {
-                const res = await fetch(REST_CLOUD_ENDPOINT);
-                if (res.ok) {
-                    const objects = await res.json();
-                    if (Array.isArray(objects)) {
-                        objects.forEach(obj => {
-                            if (obj && obj.name === SHARED_STORAGE_KEY && obj.data) {
-                                const data = obj.data;
-                                if (data && data.studentName && data.timestamp) {
-                                    const key = `${data.studentName}_${data.timestamp}`;
-                                    combinedScoresMap.set(key, data);
-                                }
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn("REST Cloud backup fetch notice:", e);
-            }
-
-            allScoresCache = Array.from(combinedScoresMap.values());
-            allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
             renderTeacherScores();
         }
 
         async function listenToTeacherScores() {
-            await fetchAllScoresFromCloud();
+            renderTeacherScores();
 
-            // Setup real-time listener if Firestore is available
             try {
                 const user = await ensureAuth();
-                if (db && user) {
-                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                    onSnapshot(scoresColl, () => {
-                        fetchAllScoresFromCloud();
-                    }, (err) => {
-                        console.warn("Snapshot error listener:", err);
-                    });
+                if (!db || !user) return;
+
+                const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+
+                if (unsubscribeScoresListener) {
+                    unsubscribeScoresListener();
                 }
-            } catch(e) {}
+
+                unsubscribeScoresListener = onSnapshot(scoresColl, (snapshot) => {
+                    const cloudScoresMap = new Map();
+
+                    // Load local scores first
+                    [...getLocalScores(), ...inMemoryScores].forEach(item => {
+                        if (item && item.studentName && item.timestamp) {
+                            const key = `${item.studentName}_${item.studentClass}_${item.score}_${item.timestamp}`;
+                            cloudScoresMap.set(key, item);
+                        }
+                    });
+
+                    // Add / update with Cloud scores
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data && data.studentName) {
+                            const key = docSnap.id;
+                            cloudScoresMap.set(key, data);
+                        }
+                    });
+
+                    allScoresCache = Array.from(cloudScoresMap.values());
+                    allScoresCache.sort((a, b) => (b.createdAt || new Date(b.timestamp).getTime() || 0) - (a.createdAt || new Date(a.timestamp).getTime() || 0));
+                    renderTeacherScores();
+                }, (error) => {
+                    console.warn("Firestore snapshot error callback:", error);
+                    renderTeacherScores();
+                });
+            } catch(e) {
+                console.warn("Error setting up real-time score listener:", e);
+            }
         }
 
         window.forceCloudRefresh = async function() {
             playSound('click');
-            showToast("מרענן נתונים מכל ענני השמירה...");
-            await fetchAllScoresFromCloud();
+            showToast("מרענן נתונים מחדש...");
+            await listenToTeacherScores();
         };
 
         function renderTeacherScores() {
@@ -1119,8 +1109,8 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
 
             if (!container) return;
 
-            const currentScores = [...allScoresCache];
-            currentScores.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            const currentScores = allScoresCache.length > 0 ? [...allScoresCache] : getLocalScores();
+            currentScores.sort((a, b) => (b.createdAt || new Date(b.timestamp).getTime() || 0) - (a.createdAt || new Date(a.timestamp).getTime() || 0));
 
             const filtered = currentScores.filter(item => {
                 if (!searchTerm) return true;
@@ -1139,7 +1129,7 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
                     <div class="text-center py-8 text-slate-400">
                         <i class="fa-solid fa-inbox text-3xl mb-2 text-purple-300 block"></i>
                         <p class="font-bold">לא נמצאו ציונים במערכת</p>
-                        <p class="text-xs text-slate-400 mt-1">לחץ על "רענן ענן" או שהמתן לתלמידים שישלימו את התרגול</p>
+                        <p class="text-xs text-slate-400 mt-1">המתן לתלמידים שישלימו את התרגול או לחץ "רענן ענן"</p>
                     </div>
                 `;
                 return;
@@ -1229,11 +1219,12 @@ https://1002135447-max.github.io/ezra-demo-p2/            transition: border-col
                         score: sc,
                         correctCount: Math.round((sc / 100) * questionsData.length),
                         totalQuestions: questionsData.length,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        createdAt: Date.now()
                     };
 
                     saveScoreToLocalStorage(manualObj);
-                    fetchAllScoresFromCloud();
+                    listenToTeacherScores();
                     showToast("הדיווח נקלט בהצלחה בלוח הציונים!");
                 } catch(e) {
                     showToast("פורמט הדיווח לא תואם");
