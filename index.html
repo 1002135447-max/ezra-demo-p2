@@ -143,7 +143,7 @@
                     תרגול עקרונות הדמוקרטיה לבגרות
                 </h2>
                 <p class="text-slate-100 text-xs sm:text-sm max-w-xl mx-auto font-normal leading-relaxed mb-5">
-                    ניתוח מקרי בוחן, דילמות אקטואליות והגדרות ממוקדות. הציון שלך יישמר ויישלח ישירות למורה בסיום התרגול!
+                    ניתוח מקרי בוחן, דילמות אקטואליות והגדרות ממוקדות. הציון שלך יישמר בענן ויוצג למורה בלוח הציונים!
                 </p>
 
                 <!-- Student Identity Inputs Box -->
@@ -290,7 +290,18 @@
                 <!-- Cloud Submission Status -->
                 <div id="submissionStatusBox" class="bg-slate-100 p-3.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto">
                     <i id="submissionStatusIcon" class="fa-solid fa-spinner fa-spin text-blue-600 text-base"></i>
-                    <span id="submissionStatusText">שולח ציון למורה...</span>
+                    <span id="submissionStatusText">שולח ציון למורה בענן...</span>
+                </div>
+
+                <!-- Manual Backup Actions -->
+                <div class="bg-blue-50/70 border border-blue-100 p-3 rounded-2xl max-w-md mx-auto space-y-2">
+                    <p class="text-[11px] text-blue-900 font-medium">לביטחון מלא - באפשרותך גם להעתיק דוח ציון או לשלוח למורה:</p>
+                    <div class="flex items-center justify-center gap-2">
+                        <button onclick="copyStudentReport()" class="bg-white hover:bg-blue-100 text-blue-800 font-bold px-3 py-1.5 rounded-xl text-xs border border-blue-200 flex items-center space-x-1 space-x-reverse shadow-sm">
+                            <i class="fa-solid fa-copy text-blue-600"></i>
+                            <span>העתק קוד ציון למורה</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Action Controls -->
@@ -395,7 +406,7 @@
                     <i class="fa-solid fa-user-graduate text-yellow-300 text-lg sm:text-xl"></i>
                     <div>
                         <h3 class="font-black text-sm sm:text-base leading-tight">לוח ציונים למורה</h3>
-                        <p class="text-[10px] sm:text-xs text-purple-200">דיווחי ציונים בזמן אמת מהתלמידים (משמר בענן)</p>
+                        <p class="text-[10px] sm:text-xs text-purple-200">צפייה בדיווחי ציונים בזמן אמת מכל המכשירים בענן</p>
                     </div>
                 </div>
                 <button onclick="closeTeacherDashboard()" class="text-white hover:text-yellow-300 p-1 rounded-lg transition">
@@ -403,10 +414,20 @@
                 </button>
             </div>
 
-            <!-- Search Bar -->
-            <div class="bg-purple-50 p-3 border-b border-purple-100 flex items-center justify-between gap-2">
+            <!-- Dashboard Action Tools -->
+            <div class="bg-purple-50 p-3 border-b border-purple-100 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center space-x-2 space-x-reverse flex-grow max-w-md">
                     <input type="text" id="teacherSearchInput" oninput="filterTeacherScores()" placeholder="חפש לפי שם תלמיד/ה או כיתה..." class="w-full bg-white px-3.5 py-2 rounded-xl border border-purple-200 text-xs text-slate-800 shadow-sm focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <button onclick="forceCloudRefresh()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 space-x-reverse shadow-sm">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>רענן ענן</span>
+                    </button>
+                    <button onclick="promptManualReportImport()" class="bg-white hover:bg-purple-100 text-purple-900 border border-purple-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 space-x-reverse shadow-sm">
+                        <i class="fa-solid fa-file-import text-purple-600"></i>
+                        <span>הדבק דיווח תלמיד</span>
+                    </button>
                 </div>
             </div>
 
@@ -434,9 +455,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game';
+        // Primary Artifact App ID & Firebase Config setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game-global';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyDemoKeyOnlyForFallback12345",
             authDomain: "demo-app.firebaseapp.com",
@@ -445,6 +467,10 @@
             messagingSenderId: "123456789",
             appId: "1:123456789:web:abcdef"
         };
+
+        // Fallback REST endpoint for Google Sites / external iframe embedding
+        const REST_CLOUD_ENDPOINT = "https://api.restful-api.dev/objects";
+        const SHARED_STORAGE_KEY = "civics_democracy_scores_v3";
 
         let app = null;
         let auth = null;
@@ -541,7 +567,7 @@
                 id: 4,
                 topic: "ניתוח אירוע - חוק יסוד הכנסת",
                 title: "פסילת מפלגה המשתמשת בכלים דמוקרטיים לשלילת המדינה",
-                scenario: "וועדת הבחירות המרכזית החליטה לפסול מפלגה מלהתמודד לבחירות לככנסת, לאחר שהוכח כי המפלגה מסיתה לגזענות ושואפת לבטל את אופיה הדמוקרטי של המדינה.",
+                scenario: "וועדת הבחירות המרכזית החליטה לפסול מפלגה מלהתמודד לבחירות לכנסת, לאחר שהוכח כי המפלגה מסיתה לגזענות ושואפת לבטל את אופיה הדמוקרטי של המדינה.",
                 prompt: "איזה עיקרון דמוקרטי מאפשר למדינה למנוע ממפלגה מסוג זה להתמודד בבחירות?",
                 options: [
                     "עקרון הדמוקרטיה המתגוננת - זכות המדינה להגן על עצמה מפני גורמים הפועלים לחסלה",
@@ -750,56 +776,6 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        async function saveStateToCloud() {
-            const user = await ensureAuth();
-            if (!user || !db) return;
-            try {
-                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'progress', 'currentSession');
-                await setDoc(userDocRef, {
-                    studentName: studentName,
-                    studentClass: studentClass,
-                    currentIndex: currentIndex,
-                    score: score,
-                    userAnswers: JSON.stringify(userAnswers),
-                    updatedAt: new Date().toISOString()
-                });
-            } catch (e) {
-                console.error("Cloud state save failed:", e);
-            }
-        }
-
-        async function loadSavedStudentState() {
-            const user = await ensureAuth();
-            if (!user || !db) return;
-            try {
-                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'progress', 'currentSession');
-                const docSnap = await getDoc(userDocRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if (data.studentName) {
-                        studentName = data.studentName;
-                        document.getElementById('studentNameInput').value = studentName;
-                    }
-                    if (data.studentClass) {
-                        studentClass = data.studentClass;
-                        document.getElementById('studentClassInput').value = studentClass;
-                    }
-                    if (typeof data.currentIndex === 'number') {
-                        currentIndex = data.currentIndex;
-                    }
-                    if (typeof data.score === 'number') {
-                        score = data.score;
-                        updateScoreDisplay();
-                    }
-                    if (data.userAnswers) {
-                        userAnswers = JSON.parse(data.userAnswers);
-                    }
-                }
-            } catch (e) {
-                console.error("Cloud state load failed:", e);
-            }
-        }
-
         window.goToHome = function() {
             playSound('click');
             document.getElementById('welcomeView').classList.remove('hidden');
@@ -833,7 +809,6 @@
             document.getElementById('quizView').classList.remove('hidden');
 
             renderQuestion();
-            saveStateToCloud();
         };
 
         window.confirmRestartGame = function() {
@@ -847,7 +822,6 @@
             } else {
                 renderQuestion();
             }
-            saveStateToCloud();
             showToast("התרגול אופס בהצלחה");
         };
 
@@ -939,7 +913,6 @@
                 isCorrect: isCorrect
             };
 
-            saveStateToCloud();
             renderQuestion();
 
             if (ttsEnabled) {
@@ -975,7 +948,6 @@
                 playSound('click');
                 currentIndex--;
                 renderQuestion();
-                saveStateToCloud();
             }
         };
 
@@ -984,7 +956,6 @@
             if (currentIndex < questionsData.length - 1) {
                 currentIndex++;
                 renderQuestion();
-                saveStateToCloud();
             } else {
                 showSummary();
             }
@@ -1040,7 +1011,7 @@
 
             statusBox.className = "bg-blue-50 border border-blue-200 p-3 rounded-xl text-blue-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
             statusIcon.className = "fa-solid fa-spinner fa-spin text-blue-600 text-base";
-            statusText.innerText = "שולח ציון למורה...";
+            statusText.innerText = "שולח ציון למורה בענן...";
 
             const scoreData = {
                 studentName: studentName || 'תלמיד/ה אנונימי/ת',
@@ -1051,76 +1022,131 @@
                 timestamp: new Date().toISOString()
             };
 
+            // Save locally immediately
             saveScoreToLocalStorage(scoreData);
 
-            const user = await ensureAuth();
+            let savedToCloud = false;
 
-            if (!db || !user) {
-                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
-                statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשמר בהצלחה במכשיר!";
-                renderTeacherScores();
-                return;
+            // 1. Primary Cloud Save: Firebase Firestore
+            try {
+                const user = await ensureAuth();
+                if (db && user) {
+                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    scoreData.userId = user.uid;
+                    await addDoc(scoresColl, scoreData);
+                    savedToCloud = true;
+                }
+            } catch (e) {
+                console.warn("Primary Firestore save skipped or unconfigured:", e);
             }
 
+            // 2. Secondary Cloud Save: Public REST Endpoint Fallback (Works in Google Sites iframes)
             try {
-                const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                scoreData.userId = user.uid;
-                await addDoc(scoresColl, scoreData);
+                const res = await fetch(REST_CLOUD_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: SHARED_STORAGE_KEY,
+                        data: scoreData
+                    })
+                });
+                if (res.ok) {
+                    savedToCloud = true;
+                }
+            } catch (e) {
+                console.warn("REST Cloud backup fallback skipped:", e);
+            }
 
+            if (savedToCloud) {
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
                 statusText.innerText = "הציון נשמר בענן בהצלחה וזמין למורה בכל עת!";
-            } catch (e) {
-                console.error("Failed to submit score to Firestore:", e);
-                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+            } else {
+                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשמר בהצלחה במכשיר!";
+                statusText.innerText = "הציון נשמר במכשיר בהצלחה!";
             }
 
+            renderTeacherScores();
+        }
+
+        async function fetchAllScoresFromCloud() {
+            const combinedScoresMap = new Map();
+
+            // Load local & memory scores first
+            [...getLocalScores(), ...inMemoryScores].forEach(item => {
+                if (item && item.studentName && item.timestamp) {
+                    const key = `${item.studentName}_${item.timestamp}`;
+                    combinedScoresMap.set(key, item);
+                }
+            });
+
+            // 1. Fetch from Firestore
+            try {
+                const user = await ensureAuth();
+                if (db && user) {
+                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    const snapshot = await getDocs(scoresColl);
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data && data.studentName && data.timestamp) {
+                            const key = `${data.studentName}_${data.timestamp}`;
+                            combinedScoresMap.set(key, data);
+                        }
+                    });
+                }
+            } catch(e) {
+                console.warn("Firestore fetch notice:", e);
+            }
+
+            // 2. Fetch from REST Backup
+            try {
+                const res = await fetch(REST_CLOUD_ENDPOINT);
+                if (res.ok) {
+                    const objects = await res.json();
+                    if (Array.isArray(objects)) {
+                        objects.forEach(obj => {
+                            if (obj && obj.name === SHARED_STORAGE_KEY && obj.data) {
+                                const data = obj.data;
+                                if (data && data.studentName && data.timestamp) {
+                                    const key = `${data.studentName}_${data.timestamp}`;
+                                    combinedScoresMap.set(key, data);
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("REST Cloud backup fetch notice:", e);
+            }
+
+            allScoresCache = Array.from(combinedScoresMap.values());
+            allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
             renderTeacherScores();
         }
 
         async function listenToTeacherScores() {
-            const localList = getLocalScores();
-            allScoresCache = [...localList];
-            renderTeacherScores();
+            await fetchAllScoresFromCloud();
 
-            const user = await ensureAuth();
-
-            if (!db || !user) return;
-
+            // Setup real-time listener if Firestore is available
             try {
-                const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                onSnapshot(scoresColl, (snapshot) => {
-                    const cloudScores = [];
-                    snapshot.forEach(docSnap => {
-                        const data = docSnap.data();
-                        if (data) cloudScores.push(data);
+                const user = await ensureAuth();
+                if (db && user) {
+                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    onSnapshot(scoresColl, () => {
+                        fetchAllScoresFromCloud();
+                    }, (err) => {
+                        console.warn("Snapshot error listener:", err);
                     });
-
-                    // Merge cloud and local scores without duplicates
-                    const mergedMap = new Map();
-                    [...cloudScores, ...getLocalScores(), ...inMemoryScores].forEach(item => {
-                        if (!item) return;
-                        const key = `${item.studentName}_${item.timestamp}`;
-                        if (!mergedMap.has(key)) {
-                            mergedMap.set(key, item);
-                        }
-                    });
-
-                    allScoresCache = Array.from(mergedMap.values());
-                    allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-                    renderTeacherScores();
-                }, (error) => {
-                    console.error("Firestore onSnapshot error:", error);
-                    renderTeacherScores();
-                });
-            } catch(e) {
-                console.error("Listen to teacher scores failed:", e);
-                renderTeacherScores();
-            }
+                }
+            } catch(e) {}
         }
+
+        window.forceCloudRefresh = async function() {
+            playSound('click');
+            showToast("מרענן נתונים מכל ענני השמירה...");
+            await fetchAllScoresFromCloud();
+        };
 
         function renderTeacherScores() {
             const container = document.getElementById('teacherScoresContainer');
@@ -1129,16 +1155,7 @@
 
             if (!container) return;
 
-            const mergedMap = new Map();
-            [...allScoresCache, ...getLocalScores(), ...inMemoryScores].forEach(item => {
-                if (!item) return;
-                const key = `${item.studentName}_${item.timestamp}`;
-                if (!mergedMap.has(key)) {
-                    mergedMap.set(key, item);
-                }
-            });
-
-            const currentScores = Array.from(mergedMap.values());
+            const currentScores = [...allScoresCache];
             currentScores.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
 
             const filtered = currentScores.filter(item => {
@@ -1158,6 +1175,7 @@
                     <div class="text-center py-8 text-slate-400">
                         <i class="fa-solid fa-inbox text-3xl mb-2 text-purple-300 block"></i>
                         <p class="font-bold">לא נמצאו ציונים במערכת</p>
+                        <p class="text-xs text-slate-400 mt-1">לחץ על "רענן ענן" או שהמתן לתלמידים שישלימו את התרגול</p>
                     </div>
                 `;
                 return;
@@ -1178,7 +1196,7 @@
                             <i class="fa-solid fa-user-circle text-purple-500 text-sm"></i>
                             <span>${escapeHtml(item.studentName || 'תלמיד אנונימי')}</span>
                         </div>
-                        <div class="sm:col-span-2 text-slate-600 font-medium">
+                        <div class="sm:col-span-2 text-slate-600 font-medium text-xs">
                             <span class="sm:hidden font-bold text-slate-400">כיתה: </span>${escapeHtml(item.studentClass || '-')}
                         </div>
                         <div class="sm:col-span-3">
@@ -1210,6 +1228,57 @@
             renderTeacherScores();
         };
 
+        window.copyStudentReport = function() {
+            playSound('click');
+            const correctCount = userAnswers.filter(a => a && a.isCorrect).length;
+            const finalScore = Math.round((correctCount / questionsData.length) * 100);
+            const reportText = `[CIVICS_REPORT] | שם: ${studentName} | כיתה: ${studentClass} | ציון: ${finalScore}/100 | תאריך: ${new Date().toLocaleDateString('he-IL')}`;
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = reportText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast("דוח הציון הועתק בהצלחה!");
+        };
+
+        window.promptManualReportImport = function() {
+            playSound('click');
+            const raw = prompt("הדבק כאן את דוח הציון שהתקבל מהתלמיד/ה:");
+            if (!raw) return;
+
+            if (raw.includes('[CIVICS_REPORT]')) {
+                try {
+                    const nameMatch = raw.match(/שם:\s*([^|]+)/);
+                    const classMatch = raw.match(/כיתה:\s*([^|]+)/);
+                    const scoreMatch = raw.match(/ציון:\s*(\d+)/);
+
+                    const name = nameMatch ? nameMatch[1].trim() : 'תלמיד/ה';
+                    const sClass = classMatch ? classMatch[1].trim() : 'כללי';
+                    const sc = scoreMatch ? parseInt(scoreMatch[1]) : 80;
+
+                    const manualObj = {
+                        studentName: name,
+                        studentClass: sClass,
+                        score: sc,
+                        correctCount: Math.round((sc / 100) * questionsData.length),
+                        totalQuestions: questionsData.length,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    saveScoreToLocalStorage(manualObj);
+                    fetchAllScoresFromCloud();
+                    showToast("הדיווח נקלט בהצלחה בלוח הציונים!");
+                } catch(e) {
+                    showToast("פורמט הדיווח לא תואם");
+                }
+            } else {
+                showToast("קוד דיווח לא תקין");
+            }
+        };
+
         let isTeacherAuthenticated = false;
         const FIXED_TEACHER_PIN = "4595";
 
@@ -1217,8 +1286,7 @@
             playSound('click');
             if (isTeacherAuthenticated) {
                 document.getElementById('teacherModal').classList.remove('hidden');
-                await ensureAuth();
-                listenToTeacherScores();
+                await listenToTeacherScores();
             } else {
                 document.getElementById('teacherAuthModal').classList.remove('hidden');
                 document.getElementById('teacherPinInput').value = '';
@@ -1232,9 +1300,8 @@
                 isTeacherAuthenticated = true;
                 document.getElementById('teacherAuthModal').classList.add('hidden');
                 document.getElementById('teacherModal').classList.remove('hidden');
-                await ensureAuth();
-                listenToTeacherScores();
                 playSound('correct');
+                await listenToTeacherScores();
             } else {
                 document.getElementById('teacherPinError').classList.remove('hidden');
                 playSound('wrong');
@@ -1273,7 +1340,6 @@
         // Initialize application on startup
         window.addEventListener('DOMContentLoaded', async () => {
             await ensureAuth();
-            loadSavedStudentState();
             listenToTeacherScores();
         });
     </script>
