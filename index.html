@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+    <html lang="he" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>מסע בדמוקרטיה - תרגול לבגרות באזרחות</title>
+        <!-- Tailwind CSS CDN -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- FontAwesome Icons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <!-- Google Fonts Rubik -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+
+        <style>
+            * {
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                font-family: 'Rubik', sans-serif;
+                background-color: #f8fafc;
+                color: #0f172a;
+                min-height: 100vh;
+                margin: 0;
+                padding: 0;
+            }
+
+            .custom-card {
+                background: #ffffff;
+                border-radius: 1.25rem;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+                border: 2px solid #e2e8f0;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .custom-card:hover {
+                border-color: #3b82f6;
+            }
+
+            .btn-action {
+                transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+            }
+
+            .btn-action:active {
+                transform: scale(0.97);
+            }
+
+            button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+                outline: 3px solid #3b82f6;
+                outline-offset: 2px;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(6px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .animate-fade-in {
+                animation: fadeIn 0.3s ease-out forwards;
+            }
+
+            ::-webkit-scrollbar {
+                width: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #f1f5f9;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+            }
+
+            @media print {
+                .no-print { display: none !important; }
+                .print-only { display: block !important; }
+                body { background: white; color: black; }
+            }
+        </style>
+    </head>
+    <body class="min-h-screen flex flex-col justify-between selection:bg-blue-100 antialiased bg-slate-50 pb-16 sm:pb-0">
+
+        <!-- Top Navigation Header -->
+        <header class="bg-blue-700 text-white shadow-md sticky top-0 z-30 no-print">
+            <div class="max-w-5xl mx-auto px-3 py-2 sm:px-6 flex items-center justify-between">
+                
+                <!-- Logo / Home Link -->
+                <div class="flex items-center space-x-2 space-x-reverse cursor-pointer" onclick="goToHome()">
+                    <div class="bg-white text-blue-700 rounded-xl font-bold text-base sm:text-lg shadow-inner flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0">
+                        <i class="fa-solid fa-landmark text-base sm:text-xl"></i>
+                    </div>
+                    <div class="leading-tight">
+                        <h1 class="text-xs sm:text-base font-black tracking-wide">מסע בדמוקרטיה</h1>
+                        <p class="text-[9px] sm:text-xs text-blue-100 font-medium hidden xs:block">תרגול לבגרות באזרחות</p>
+                    </div>
+                </div>
+
+                <!-- Header Action Controls -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2 space-x-reverse">
+                    
+                    <!-- Teacher Dashboard Button -->
+                    <button onclick="openTeacherDashboard()" class="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center space-x-1 space-x-reverse border border-purple-400/40 shadow-sm transition" title="אזור מורה - צפייה בציונים">
+                        <i class="fa-solid fa-user-graduate text-yellow-300"></i>
+                        <span class="hidden sm:inline">לוח ציונים למורה</span>
+                    </button>
+
+                    <!-- Lexicon Toggle -->
+                    <button onclick="openLexicon()" class="bg-blue-600 hover:bg-blue-800 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center space-x-1 space-x-reverse border border-blue-400/40 shadow-sm transition">
+                        <i class="fa-solid fa-book-bookmark text-yellow-300"></i>
+                        <span class="hidden md:inline">מילון עקרונות</span>
+                    </button>
+
+                    <!-- TTS Audio Toggle -->
+                    <button id="ttsToggleBtn" onclick="toggleAudioSpeech()" class="bg-blue-600 hover:bg-blue-800 text-white p-1.5 sm:p-2 rounded-xl border border-blue-400/40 shadow-sm transition" title="הקראה קולית">
+                        <i class="fa-solid fa-volume-high text-xs sm:text-base" id="ttsIcon"></i>
+                    </button>
+
+                    <!-- Score Counter -->
+                    <div class="bg-blue-900/80 px-2.5 py-1 rounded-xl border border-blue-400/30 flex items-center space-x-1 space-x-reverse">
+                        <i class="fa-solid fa-star text-yellow-400 text-xs sm:text-sm"></i>
+                        <span id="scoreDisplay" class="font-black text-xs sm:text-base text-yellow-300">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-4xl w-full mx-auto p-3 sm:p-6 flex-grow flex flex-col justify-center">
+            
+            <!-- ================= WELCOME / STUDENT DETAILS VIEW ================= -->
+            <section id="welcomeView" class="space-y-4 sm:space-y-6 text-center animate-fade-in my-auto py-2 sm:py-4">
+                <div class="bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white p-5 sm:p-8 rounded-3xl shadow-xl border border-blue-500/20 relative overflow-hidden">
+                    <div class="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-yellow-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                    <div class="inline-flex items-center justify-center p-3 bg-white/10 rounded-2xl mb-3 backdrop-blur-md">
+                        <i class="fa-solid fa-scale-balanced text-3xl sm:text-4xl text-yellow-300"></i>
+                    </div>
+
+                    <h2 class="text-xl sm:text-3xl font-black mb-2 leading-tight">
+                        תרגול עקרונות הדמוקרטיה לבגרות
+                    </h2>
+                    <p class="text-slate-100 text-xs sm:text-sm max-w-xl mx-auto font-normal leading-relaxed mb-5">
+                        ניתוח מקרי בוחן, דילמות אקטואליות והגדרות ממוקדות. הציון שלך יישמר ויישלח ישירות למורה בסיום התרגול!
+                    </p>
+
+                    <!-- Student Identity Inputs Box -->
+                    <div class="bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/20 max-w-md mx-auto mb-5 text-right space-y-3">
+                        <h3 class="text-xs sm:text-sm font-bold text-yellow-300 flex items-center space-x-1.5 space-x-reverse">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>הזדהות תלמיד/ה לדיווח ציון:</span>
+                        </h3>
+                        <div>
+                            <label class="block text-xs text-blue-100 mb-1 font-medium">שם מלא:</label>
+                            <input type="text" id="studentNameInput" placeholder="הכנס/י שם מלא" class="w-full bg-white text-slate-900 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-transparent focus:border-yellow-400 shadow-inner">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-blue-100 mb-1 font-medium">כיתה / קבוצת לימוד:</label>
+                            <input type="text" id="studentClassInput" placeholder="למשל: יא' 2" class="w-full bg-white text-slate-900 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 border-transparent focus:border-yellow-400 shadow-inner">
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1 no-print">
+                        <button onclick="startGame()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm px-5 py-3 rounded-xl btn-action flex items-center justify-center space-x-2 space-x-reverse shadow">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>התחל מחדש</span>
+                        </button>
+
+                        <button onclick="window.print()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm px-5 py-3 rounded-xl border border-slate-300 btn-action flex items-center justify-center space-x-2 space-x-reverse">
+                            <i class="fa-solid fa-print"></i>
+                            <span>הדפס סיכום</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- LEXICON MODAL -->
+        <div id="lexiconModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 animate-fade-in">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+                <div class="bg-blue-700 text-white p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-book-bookmark text-yellow-300 text-lg"></i>
+                        <h3 class="font-extrabold text-sm sm:text-base">מילון עקרונות הדמוקרטיה לבגרות</h3>
+                    </div>
+                    <button onclick="closeLexicon()" class="text-white hover:text-yellow-300 p-1 rounded-lg transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="p-4 overflow-y-auto space-y-3 text-right flex-grow text-xs sm:text-sm">
+                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                        <h4 class="font-black text-blue-900 text-sm mb-1">1. שלטון העם</h4>
+                        <p class="text-slate-700 leading-relaxed">העם הוא מקור הסמכות והשלטון במדינה. האזרחים בוחרים את נציגיהם שינהלו את המדינה לפרק זמן מוגבל.</p>
+                    </div>
+                    <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200">
+                        <h4 class="font-black text-indigo-900 text-sm mb-1">2. הכרעת הרוב ושמירה על זכויות המיעוט</h4>
+                        <p class="text-slate-700 leading-relaxed">החלטות מתקבלות ברוב, אך אסור לרוב לקבל החלטות שפוגעות באופן בלתי מוצדק בזכויות היסוד של המיעוט (עריצות הרוב).</p>
+                    </div>
+                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                        <h4 class="font-black text-emerald-900 text-sm mb-1">3. פלורליזם, סובלנות והסכמיות</h4>
+                        <p class="text-slate-700 leading-relaxed"><strong>פלורליזם:</strong> הכרה בזכות קיומן של דעות וקבוצות שונות.<br><strong>סובלנות:</strong> נכונות לקבל את השונה והאחר.<br><strong>הסכמיות:</strong> הסכמה רחבה על "כללי המשחק".</p>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-xl border border-rose-200">
+                        <h4 class="font-black text-rose-900 text-sm mb-1">4. דמוקרטיה מתגוננת</h4>
+                        <p class="text-slate-700 leading-relaxed">זכותה של הדמוקרטיה להגן על עצמה מפני קבוצות המנצלות כלים דמוקרטיים כדי לבטל אותה.</p>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                        <h4 class="font-black text-amber-900 text-sm mb-1">5. זכויות האדם והאזרח</h4>
+                        <p class="text-slate-700 leading-relaxed">זכויות טבעיות (חיים ובטחון, חירות, שוויון, קניין, כבוד, הליך הוגן) וזכויות אזרחיות (להצביע, להיבחר, להתאגד).</p>
+                    </div>
+                    <div class="p-3 bg-purple-50 rounded-xl border border-purple-200">
+                        <h4 class="font-black text-purple-900 text-sm mb-1">6. הגבלת השלטון והפרדת רשויות</h4>
+                        <p class="text-slate-700 leading-relaxed">הגבלת כוח השלטון למניעת עריצות על ידי הפרדת רשויות ומנגנוני ביקורת פורמליים ובלתי-פורמליים.</p>
+                    </div>
+                    <div class="p-3 bg-cyan-50 rounded-xl border border-cyan-200">
+                        <h4 class="font-black text-cyan-900 text-sm mb-1">7. שלטון החוק</h4>
+                        <p class="text-slate-700 leading-relaxed"><strong>פורמלי:</strong> חוק שנחקק בהליך דמוקרטי וכולם כפופים לו.<br><strong>מהותי:</strong> החוק עצמו חייב להיות צודק ולשמור על זכויות האדם.</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-100 p-3 text-center border-t border-slate-200">
+                    <button onclick="closeLexicon()" class="bg-blue-600 text-white font-bold px-5 py-1.5 rounded-xl text-xs">סגור</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEACHER AUTH MODAL (PIN PROTECTION) -->
+        <div id="teacherAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 animate-fade-in">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-sm p-5 text-right space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2 space-x-reverse text-purple-700 font-black text-sm sm:text-base">
+                        <i class="fa-solid fa-lock text-purple-600"></i>
+                        <span>אזור מורה - הזנת קוד גישה</span>
+                    </div>
+                    <button onclick="closeTeacherAuthModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <p id="teacherPinHelpText" class="text-xs text-slate-600 leading-relaxed">
+                    כדי למנוע מתלמידים צפייה בציונים, הכניסה ללוח המורה מוגנת בקוד גישה למורה בלבד.
+                </p>
+                <div>
+                    <input type="password" id="teacherPinInput" placeholder="הכנס קוד מורה" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2 text-center text-base font-bold tracking-widest text-slate-800 focus:border-purple-600 outline-none">
+                    <p id="teacherPinError" class="text-rose-600 text-xs font-bold mt-1.5 hidden text-center">קוד שגוי, נסה שנית</p>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button onclick="verifyTeacherPin()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 rounded-xl text-xs transition">כניסה ללוח הציונים</button>
+                    <button onclick="closeTeacherAuthModal()" class="w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition">ביטול</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEACHER DASHBOARD MODAL -->
+        <div id="teacherModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 animate-fade-in">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden text-right">
+                
+                <div class="bg-purple-700 text-white p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-user-graduate text-yellow-300 text-lg sm:text-xl"></i>
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base leading-tight">לוח ציונים למורה</h3>
+                            <p class="text-[10px] sm:text-xs text-purple-200">דיווחי ציונים בזמן אמת מהתלמידים</p>
+                        </div>
+                    </div>
+                    <button onclick="closeTeacherDashboard()" class="text-white hover:text-yellow-300 p-1 rounded-lg transition">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Filters Bar -->
+                <div class="bg-purple-50 p-3 border-b border-purple-100 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center space-x-2 space-x-reverse flex-grow max-w-md">
+                        <input type="text" id="teacherSearchInput" oninput="filterTeacherScores()" placeholder="חפש לפי שם תלמיד/ה..." class="w-full bg-white px-3 py-1.5 rounded-xl border border-purple-200 text-xs text-slate-800">
+                    </div>
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <button onclick="copyClassroomLink()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 space-x-reverse shadow-sm">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>העתק קישור למשימה</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-100 p-3 flex items-center justify-between border-t border-slate-200">
+                    <span id="totalSubmissionsCount" class="text-xs text-slate-600 font-bold">סה"כ דיווחים: 0</span>
+                    <button onclick="closeTeacherDashboard()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold px-5 py-1.5 rounded-xl text-xs">
+                        סגור
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Notification Toast -->
+        <div id="toastNotification" class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold z-50 hidden transition-all flex items-center space-x-2 space-x-reverse">
+            <i class="fa-solid fa-circle-info text-yellow-400"></i>
+            <span id="toastText">הודעה</span>
+        </div>
+
+        <!-- FIREBASE & GAME LOGIC -->
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+            import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+            import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                apiKey: "AIzaSyDemoKeyOnlyForFallback12345",
+                authDomain: "demo-app.firebaseapp.com",
+                projectId: "demo-app",
+                storageBucket: "demo-app.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:abcdef"
+            };
+
+            let app, auth, db, currentUser = null;
+
+            // Initialize Firebase
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Auth flow
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+                } else {
+                    signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        loadSavedStudentState();
+                        listenToTeacherScores();
+                        loadCloudTeacherPin();
+                    }
+                });
+            } catch(e) {
+                console.error("Firebase init fallback:", e);
+            }
+
+            const questionsData = [
+                {
+                    id: 1,
+                    topic: "ניתוח אירוע - מעורבות אזרחים",
+                    title: "השפעת האזרחים במדינה דמוקרטית",
+                    scenario: "לקראת הבחירות לכנסת, קבוצת אזרחים החליטה להקים מפלגה חדשה ולהציע תוכנית כלכלית ייחודית. האזרחים טוענים כי זוהי הדרך המרכזית שלהם להשפיע על המדינה ולממש את כוחם כמקור הסמכות השלטונית.",
+                    prompt: "על פי איזה עיקרון דמוקרטי פועלים האזרחים באירוע זה?",
+                    options: [
+                        "עקרון שלטון העם - העם הוא מקור הסמכות ובוחר את נציגיו לשלטון",
+                        "עקרון שלטון החוק - החוק מחייב את המפלגות החדשות לבצע רישום כחוק",
+                        "עקרון הפרדת הרשויות - הרשות המחוקקת נפרדת מהרשות המבצעת",
+                        "עקרון הדמוקרטיה המתגוננת - מניעת הקמת מפלגות חדשות"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזה עיקרון אומר שהאזרחים הם בעלי הריבונות והכוח לבחור נציגים במדינה?",
+                    explanation: "עקרון שלטון העם קובע כי העם הוא מקור הסמכות השלטונית. בדמוקרטיה ייצוגית, האזרחים מממשים עיקרון זה בעיקר על ידי בחירת נציגים (מפלגות) שינהלו את המדינה."
+                },
+                {
+                    id: 2,
+                    topic: "ניתוח אירוע - רשות מקומית",
+                    title: "דילמת הרוב והמיעוט ברשות המקומית",
+                    scenario: "מועצת עיר החליטה ברוב קולות לסגור את המרכז הקהילתי של קבוצת המיעוט הלשוני בעיר. חברי המיעוט טוענים כי ההחלטה התקבלה אומנם ברוב קולות, אך היא פוגעת בזכותם היסודית לתרבות ולשוויון ללא הצדקה.",
+                    prompt: "כיצד מוגדרת החלטה מסוג זה של הרוב הפוגעת בזכויות המיעוט?",
+                    options: [
+                        "הכרעת רוב לגיטימית - הרוב תמיד מוסמך לקבל כל החלטה ללא הגבלה",
+                        "עריצות הרוב - שימוש בכוח הרוב כדי לפגוע בבלתי מוצדק בזכויות המיעוט",
+                        "עקרון הסכמיות - הסכמה מלאה בין כל תושבי העיר על סגירת המרכז",
+                        "עקרון הפלורליזם - ביטול כל המרכזים הקהילתיים בעיר"
+                    ],
+                    correctIndex: 1,
+                    hint: "מה קורה כאשר הרוב מקבל החלטה שפוגעת בזכויות יסוד של המיעוט?",
+                    explanation: "החלטה זו מוגדרת כ'עריצות הרוב'. הכרעת הרוב בדמוקרטיה אינה מוחלטת – אסור לרוב לקבל החלטות שפוגעות בזכויות היסוד של המיעוט באופן בלתי מוצדק."
+                },
+                {
+                    id: 3,
+                    topic: "ניתוח אירוע - חופש הביטוי",
+                    title: "הפגנה מול דעות מקוממות",
+                    scenario: "קבוצת אזרחים קיימה הפגנה והביעה עמדות שקוממו אזרחים רבים. למרות המחלוקת והכעס, המשטרה והציבור איפשרו להם להפגין ולבטא את דעתם בחופשיות.",
+                    prompt: "איזה ערך דמוקרטי בא לידי ביטוי בכך שהציבור והמשטרה מאפשרים להפגנה להתקיים?",
+                    options: [
+                        "סובלנות - הנכונות לקבל ולכבד את זכותו של האחר להתבטא גם כשלא מסכימים איתו",
+                        "הסכמיות - הסכמה של כל האזרחים עם הדעות שהושמעו בהפגנה",
+                        "שלטון החוק הפורמלי - כתיבת תקציב המדינה על ידי הרשות המבצעת",
+                        "הפרדת רשויות - חלוקת הסמכויות בין בתי המשפט למשטרה"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזה ערך מבטא את הנכונות לסבול דעות שונות ומקוממות מתוך כבוד לחופש הביטוי?",
+                    explanation: "סובלנות היא הנכונות לקבל את השונה והאחר ולכבד את זכותו להביע את דעתו, גם כאשר דעותיו מרגיזות או מנוגדות לדעתנו."
+                },
+                {
+                    id: 4,
+                    topic: "ניתוח אירוע - בחירות לככנסת",
+                    title: "פסילת מפלגה המשתמשת בכלים דמוקרטיים לשלילת המדינה",
+                    scenario: "וועדת הבחירות המרכזית החליטה לפסול מפלגה מלהתמודד לבחירות לכנסת, לאחר שהוכח כי המפלגה מסיתה לגזענות ושואפת לבטל את אופיה הדמוקרטי של המדינה (בהתאם לסעיף 7א לחוק יסוד הכנסת).",
+                    prompt: "איזה עיקרון דמוקרטי מאפשר למדינה למנוע ממפלגה מסוג זה להתמודד בבחירות?",
+                    options: [
+                        "עקרון הדמוקרטיה המתגוננת - זכות המדינה להגן על עצמה מפני גורמים הפועלים לחסלה",
+                        "עקרון הפלורליזם - חובה לאשר לכל מפלגה להתמודד ללא שום מגבלה",
+                        "עקרון שלטון החוק المהותי - ביטול כל בית משפט במדינה",
+                        "חופש התנועה - הזכות של מועמדים לנוע בחופשיות בין מפלגות"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזה עיקרון מאפשר לדמוקרטיה להגביל מפלגות שמנסות להרוס את המשטר הדמוקרטי מבפנים?",
+                    explanation: "עקרון הדמוקרטיה המתגוננת קובע כי הדמוקרטיה מגינה על עצמה מפני קבוצות המשתמשות בחופש הביטוי ובכלים דמוקרטיים כדי לבטל את הדמוקרטיה."
+                },
+                {
+                    id: 5,
+                    topic: "ניתוח אירוע - תקשורת ומשפט",
+                    title: "כתבת תחקיר עיתונאית על איש ציבור",
+                    scenario: "עיתונאי פרסם כתבת תחקיר שחשפה אי-סדרים בעבודתו של שר בממשלה. השר דרש למנוע את הפרסום, אך בית המשפט קבע כי הפרסום מותר.",
+                    prompt: "אילו זכויות יסוד עומדות בבסיס החלטת בית המשפט להתיר את פרסום הכתבה?",
+                    options: [
+                        "חופש הביטוי וזכות הציבור לדעת - זכויות יסוד המאפשרות ביקורת על השלטון",
+                        "הזכות לפרטיות של השר - זכות מוחלטת שגוברת על כל ביקורת ציבורית",
+                        "חובת הציבור לציית לחוק - חובה בלעדית של העיתונאי לשתוק",
+                        "עקרון השוויון - חובה לפרסם כתבה זהה על כל אזרח במדינה"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזו זכות חיונית מאפשרת לתקשורת ולציבור לבקר את מהלכי השלטון?",
+                    explanation: "חופש הביטוי וזכות הציבור לדעת הם מאבני התווך של החברה הדמוקרטית, המאפשרים פיקוח וביקורת על נושאי תפקידים ציבוריים."
+                },
+                {
+                    id: 6,
+                    topic: "ניתוח אירוע - ביקורת המדינה",
+                    title: "ביקורת על תפקוד משרדי הממשלה",
+                    scenario: "מבקר המדינה פרסם דוח נוקב החושף ליקויים חמורים בניהול תקציב הביטחון. במקביל, בכלי התקשורת פורסמו סדרת תחקירים בעקבות הדוח.",
+                    prompt: "אילו מנגנוני ביקורת מופעלים באירוע זה על הרשות המבצעת?",
+                    options: [
+                        "מנגנוני ביקורת פורמליים (מבקר המדינה) ובלתי-פורמליים (התקשורת)",
+                        "מנגנוני ביקורת משפטיים בלבד הפועלים בתוך הרשות המבצעת",
+                        "עקרון שלטון העם הישיר - העם מצביע מדי יום על תקציב הביטחון",
+                        "עקרון הפלורליזם - ריבוי תקציבים שונים לכל משרד"
+                    ],
+                    correctIndex: 0,
+                    hint: "שים לב: מבקר המדינה פועל מכוח חוק (פורמלי), ואילו התקשורת היא גוף אזרחי חופשי (בלתי-פורמלי).",
+                    explanation: "הגבלת השלטון נעשית הן על ידי מנגנונים פורמליים (כמו מבקר המדינה, בית משפט) והן על ידי מנגנונים בלתי-פורמליים (כמו תקשורת, הפגנות ודעת קהל)."
+                },
+                {
+                    id: 7,
+                    topic: "ניתוח אירוע - חקיקת הכנסת",
+                    title: "חוק שנחקק בפרלמנט אך פוגע בשוויון",
+                    scenario: "הכנסת חוקקה חוק בהליך דמוקרטי תקין לפי כל הכללים. ואולם, החוק מפלה לרעה קבוצה מסוימת באוכלוסייה בלבד. משפטנים טוענים כי החוק בעייתי במדינה דמוקרטית.",
+                    prompt: "באיזה מובן של עקרון שלטון החוק נפגע החוק המתואר?",
+                    options: [
+                        "המובן המהותי של שלטון החוק דורש שהחוק יהיה צודק ויגן על זכויות האדם",
+                        "המובן הפורמלי של שלטון החוק דורש לבטל את הכנסת ואת הבחירות",
+                        "עקרון הסכמיות פירושו שכל חוק שנחקק הוא מושלם ואין לבקרו",
+                        "עקרון הפרדת הרשויות קובע שהחוק תקף רק לגבי הרשות השופטת"
+                    ],
+                    correctIndex: 0,
+                    hint: "מהי ההבחנה בין חוק שנחקק בנהלים הנכונים (פורמלי) לבין חוק שהוא צודק ושומר על זכויות (מהותי)?",
+                    explanation: "שלטון החוק המהותי בוחן את תוכן החוק – החוק חייב להיות ראוי, צודק ולשמור על זכויות האדם והדמוקרטיה, ולא רק להיחקק בצורה טכנית (פורמלית)."
+                },
+                {
+                    id: 8,
+                    topic: "ניתוח אירוע - צבא וביטחון",
+                    title: "הוראה שדגל שחור מונף מעליה",
+                    scenario: "במהלך פעילות מבצעית, מפקד פקד על חייליו לירות באזרחים חפים מפשע שאינם מהווים כל סכנה.",
+                    prompt: "כיצד מוגדרת פקודה זו ומהי חובת החיילים לגביה?",
+                    options: [
+                        "פקודה בלתי חוקית בעליל - חובה לסרב לה, מכיוון שהיא נוגדת את המוסר האנושי הבסיסי ('דגל שחור')",
+                        "פקודה בלתי חוקית רגילה - חייבים לבצע אותה מיד ורק אחר כך להתלונן",
+                        "עקרון שלטון העם - החיילים חייבים לערוך הצבעה ברוב קולות בשטח",
+                        "עקרון הפלורליזם - אישור לכל חייל לפעול כרצונו ללא פקודות"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזו פקודה דורשת מפקוד לסרב מיד כי מונף מעליה 'דגל שחור' של אי חוקיות דוקרת עין?",
+                    explanation: "פקודה בלתי חוקית בעליל היא פקודה שאי חוקיותה ברורה ודוקרת את העין (מונף מעליה דגל שחור). חובה על החייל והאזרח לסרב לבצעה!"
+                },
+                {
+                    id: 9,
+                    topic: "ניתוח אירוע - חלוקת סמכויות",
+                    title: "חלוקת הסמכויות במדינה",
+                    scenario: "הציעו חוק לפיו הרשות המבצעת (הממשלה) תוכל לבטל פסיקות של בתי המשפט ולהעניש אזרחים ללא משפט. מומחים הזהירו שהצעה זו מסוכנת.",
+                    prompt: "איזה עיקרון דמוקרטי מרכזי נפגע בהצעת חוק זו?",
+                    options: [
+                        "עקרון הפרדת הרשויות - חלוקת הסמכויות בין המחוקקת, המבצעת והשופטת למניעת עריצות",
+                        "עקרון הסכמיות - חלוקת סמכויות שווה בין כל האזרחים במדינה",
+                        "חופש ההתאגדות - הזכות להקים בתי משפט פרטיים",
+                        "זכות הקניין - שמירה על רכוש הממשלה"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזה עיקרון מחלק את כוח המדינה ל-3 רשויות שונות (מחוקקת, מבצעת, שופטת) כדי לבלום זו את זו?",
+                    explanation: "הפרדת הרשויות מפצלת את סמכויות השלטון לרשות מחוקקת, מבצעת ושופטת. עיקרון זה מונע ריכוז כוח מוחלט בידי גורם אחד ושומר על חירות האזרח."
+                },
+                {
+                    id: 10,
+                    topic: "ניתוח אירוע - החברה בישראל",
+                    title: "הסכמה על כללי המשחק",
+                    scenario: "למרות הוויכוחים והמחלוקות הנוקבות בחברה הישראלית, רוב אזרחי המדינה מסכימים כי את ההכרעות יש לקבל אך ורק בדרכים שלום ודרך הכרעת הכנסת והבחירות.",
+                    prompt: "איזה עיקרון דמוקרטי מתאר הסכמה רחבה זו על כללי המשחק?",
+                    options: [
+                        "עקרון ההסכמיות - הסכמה רחבה על כללי המשחק ואופי המדינה המאפשרת חיים משותפים",
+                        "עקרון דמוקרטיה ישירה - חובה לקיים משאל עם על כל חוק",
+                        "עקרון הזכות לחיים ובטחון - חובה של הצבא להגן על גבולות המדינה",
+                        "שלטון החוק הפורמלי - חובה ללמוד אזרחות בבתי הספר"
+                    ],
+                    correctIndex: 0,
+                    hint: "איזה מושג מתאר הסכמה רחבה של קבוצות שונות על כללי המשחק הדמוקרטיים?",
+                    explanation: "הסכמיות היא הסכמה רחבה בקרב הציבור והקבוצות השונות על מסגרת המדינה ועל 'כללי המשחק' לקבלת החלטות. היא מעניקה יציבות לחברה."
+                }
+            ];
+
+            let currentIndex = 0;
+            let score = 0;
+            let userAnswers = new Array(questionsData.length).fill(null);
+            let studentName = "";
+            let studentClass = "";
+            let allScoresCache = [];
+
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            function playSound(type) {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    const now = audioCtx.currentTime;
+
+                    if (type === 'click') {
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(400, now);
+                        gain.gain.setValueAtTime(0.05, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                        osc.start(now);
+                        osc.stop(now + 0.05);
+                    } else if (type === 'correct') {
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(523.25, now); // C5
+                        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    } else if (type === 'wrong') {
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(220, now);
+                        osc.frequency.setValueAtTime(180, now + 0.1);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    }
+                } catch(e) {}
+            }
+
+            let ttsEnabled = true;
+
+            window.toggleAudioSpeech = function() {
+                ttsEnabled = !ttsEnabled;
+                const icon = document.getElementById('ttsIcon');
+                const btn = document.getElementById('ttsToggleBtn');
+
+                if (ttsEnabled) {
+                    icon.className = "fa-solid fa-volume-high text-xs sm:text-base";
+                    btn.classList.remove('bg-slate-500');
+                    btn.classList.add('bg-blue-600');
+                } else {
+                    icon.className = "fa-solid fa-volume-xmark text-xs sm:text-base";
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-slate-500');
+                    window.speechSynthesis.cancel();
+                }
+                playSound('click');
+            };
+
+            function speakText(text) {
+                if (!ttsEnabled || !('speechSynthesis' in window)) return;
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'he-IL';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+
+            async function saveStateToCloud() {
+                if (!currentUser || !db) return;
+                try {
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'progress', 'currentSession');
+                    await setDoc(userDocRef, {
+                        studentName: studentName,
+                        studentClass: studentClass,
+                        currentIndex: currentIndex,
+                        score: score,
+                        userAnswers: JSON.stringify(userAnswers),
+                        updatedAt: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.error("Cloud save failed:", e);
+                }
+            }
+
+            async function loadSavedStudentState() {
+                if (!currentUser || !db) return;
+                try {
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'progress', 'currentSession');
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.studentName) {
+                            studentName = data.studentName;
+                            document.getElementById('studentNameInput').value = studentName;
+                        }
+                        if (data.studentClass) {
+                            studentClass = data.studentClass;
+                            document.getElementById('studentClassInput').value = studentClass;
+                        }
+                        if (typeof data.currentIndex === 'number') {
+                            currentIndex = data.currentIndex;
+                        }
+                        if (typeof data.score === 'number') {
+                            score = data.score;
+                            updateScoreDisplay();
+                        }
+                        if (data.userAnswers) {
+                            userAnswers = JSON.parse(data.userAnswers);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Cloud load failed:", e);
+                }
+            }
+
+            window.goToHome = function() {
+                playSound('click');
+                document.getElementById('welcomeView').classList.remove('hidden');
+                document.getElementById('quizView').classList.add('hidden');
+                document.getElementById('summaryView').classList.add('hidden');
+                window.speechSynthesis.cancel();
+            };
+
+            window.startGame = function() {
+                const nameInput = document.getElementById('studentNameInput').value.trim();
+                const classInput = document.getElementById('studentClassInput').value.trim();
+
+                if (!nameInput) {
+                    showToast("אנא הזן/י שם מלא כדי להתחיל בתרגול");
+                    document.getElementById('studentNameInput').focus();
+                    return;
+                }
+
+                studentName = nameInput;
+                studentClass = classInput || "כללי";
+
+                playSound('click');
+                document.getElementById('activeStudentLabel').innerText = `תלמיד/ה: ${studentName} (${studentClass})`;
+
+                document.getElementById('welcomeView').classList.add('hidden');
+                document.getElementById('summaryView').classList.add('hidden');
+                document.getElementById('quizView').classList.remove('hidden');
+
+                renderQuestion();
+                saveStateToCloud();
+            };
+
+            window.confirmRestartGame = function() {
+                if (confirm("האם לאפס את התרגול ולהתחיל מחדש?")) {
+                    currentIndex = 0;
+                    score = 0;
+                    userAnswers = new Array(questionsData.length).fill(null);
+                    updateScoreDisplay();
+                    renderQuestion();
+                    saveStateToCloud();
+                    showToast("התרגול אופס בהצלחה");
+                }
+            };
+
+            function updateScoreDisplay() {
+                document.getElementById('scoreDisplay').innerText = score;
+            }
+
+            function renderQuestion() {
+                const q = questionsData[currentIndex];
+
+                document.getElementById('hintBox').classList.add('hidden');
+                document.getElementById('questionProgressText').innerText = `שאלה ${currentIndex + 1} מתוך ${questionsData.length}`;
+                document.getElementById('questionTopicTag').innerText = q.topic;
+
+                document.getElementById('questionTitle').innerText = q.title;
+                document.getElementById('questionScenario').innerText = q.scenario;
+                document.getElementById('questionPromptText').innerText = `שאלה: ${q.prompt}`;
+                document.getElementById('hintText').innerText = q.hint;
+
+                const isFirst = (currentIndex === 0);
+                document.getElementById('topPrevBtn').disabled = isFirst;
+                document.getElementById('bottomPrevBtn').disabled = isFirst;
+
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = '';
+
+                const previousAnswer = userAnswers[currentIndex];
+
+                q.options.forEach((optText, optIdx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `w-full text-right p-3 sm:p-3.5 rounded-xl border-2 font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-between gap-3 text-slate-800 bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50/50`;
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'leading-relaxed flex-grow';
+                    textSpan.textContent = optText;
+
+                    const indicatorSpan = document.createElement('span');
+                    indicatorSpan.className = 'opt-indicator w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0 text-xs font-bold';
+                    indicatorSpan.textContent = String.fromCharCode(65 + optIdx);
+
+                    btn.appendChild(textSpan);
+                    btn.appendChild(indicatorSpan);
+
+                    btn.onclick = () => handleSelectOption(optIdx);
+
+                    if (previousAnswer !== null) {
+                        btn.disabled = true;
+                        if (optIdx === q.correctIndex) {
+                            btn.className = "w-full text-right p-3 sm:p-3.5 rounded-xl border-2 font-bold text-xs sm:text-sm bg-emerald-50 border-emerald-500 text-emerald-950 flex items-center justify-between gap-3";
+                            indicatorSpan.className = "w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xs font-bold";
+                            indicatorSpan.innerHTML = '<i class="fa-solid fa-check"></i>';
+                        } else if (optIdx === previousAnswer.selectedIndex) {
+                            btn.className = "w-full text-right p-3 sm:p-3.5 rounded-xl border-2 font-bold text-xs sm:text-sm bg-rose-50 border-rose-400 text-rose-950 flex items-center justify-between gap-3";
+                            indicatorSpan.className = "w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0 text-xs font-bold";
+                            indicatorSpan.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                        }
+                    }
+
+                    container.appendChild(btn);
+                });
+
+                const feedbackContainer = document.getElementById('feedbackContainer');
+                if (previousAnswer !== null) {
+                    showFeedbackUI(previousAnswer.isCorrect, q.explanation);
+                } else {
+                    feedbackContainer.classList.add('hidden');
+                }
+
+                if (ttsEnabled && previousAnswer === null) {
+                    speakCurrentQuestion();
+                }
+            }
+
+            function handleSelectOption(optIdx) {
+                const q = questionsData[currentIndex];
+                const isCorrect = (optIdx === q.correctIndex);
+
+                playSound(isCorrect ? 'correct' : 'wrong');
+
+                if (userAnswers[currentIndex] === null) {
+                    if (isCorrect) {
+                        score += 10;
+                        updateScoreDisplay();
+                    }
+                }
+
+                userAnswers[currentIndex] = {
+                    selectedIndex: optIdx,
+                    isCorrect: isCorrect
+                };
+
+                saveStateToCloud();
+                renderQuestion();
+
+                if (ttsEnabled) {
+                    speakText(isCorrect ? "נכון מאוד! " + q.explanation : "תשובה לא מדויקת. " + q.explanation);
+                }
+            }
+
+            function showFeedbackUI(isCorrect, explanation) {
+                const container = document.getElementById('feedbackContainer');
+                const icon = document.getElementById('feedbackIcon');
+                const title = document.getElementById('feedbackTitle');
+                const text = document.getElementById('feedbackExplanation');
+
+                container.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-300', 'bg-rose-50', 'border-rose-300');
+
+                if (isCorrect) {
+                    container.classList.add('bg-emerald-50', 'border-emerald-300');
+                    icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600"></i>';
+                    title.innerText = "תשובה נכונה! כל הכבוד!";
+                    title.className = "text-xs sm:text-sm font-black text-emerald-900";
+                } else {
+                    container.classList.add('bg-rose-50', 'border-rose-300');
+                    icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-600"></i>';
+                    title.innerText = "תשובה לא מדויקת - הסבר לבגרות:";
+                    title.className = "text-xs sm:text-sm font-black text-rose-900";
+                }
+
+                text.innerText = explanation;
+            }
+
+            window.prevQuestion = function() {
+                if (currentIndex > 0) {
+                    playSound('click');
+                    currentIndex--;
+                    renderQuestion();
+                    saveStateToCloud();
+                }
+            };
+
+            window.nextQuestion = function() {
+                playSound('click');
+                if (currentIndex < questionsData.length - 1) {
+                    currentIndex++;
+                    renderQuestion();
+                    saveStateToCloud();
+                } else {
+                    showSummary();
+                }
+            };
+
+            window.toggleHint = function() {
+                playSound('click');
+                const hintBox = document.getElementById('hintBox');
+                hintBox.classList.toggle('hidden');
+                if (!hintBox.classList.contains('hidden') && ttsEnabled) {
+                    speakText("רמז: " + questionsData[currentIndex].hint);
+                }
+            };
+
+            window.speakCurrentQuestion = function() {
+                const q = questionsData[currentIndex];
+                speakText(q.title + ". " + q.scenario + ". שאלה: " + q.prompt);
+            };
+
+            async function showSummary() {
+                window.speechSynthesis.cancel();
+                document.getElementById('quizView').classList.add('hidden');
+                document.getElementById('summaryView').classList.remove('hidden');
+
+                const correctCount = userAnswers.filter(a => a && a.isCorrect).length;
+                const finalScore = Math.round((correctCount / questionsData.length) * 100);
+
+                document.getElementById('summaryStudentName').innerText = `תלמיד/ה: ${studentName} | כיתה: ${studentClass}`;
+                document.getElementById('finalScoreText').innerText = `${finalScore} / 100`;
+                document.getElementById('correctAnswersCountText').innerText = `${correctCount}`;
+
+                const badge = document.getElementById('scoreGradeBadge');
+                if (finalScore >= 90) {
+                    badge.innerText = "מצוין!";
+                    badge.className = "inline-block mt-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800";
+                } else if (finalScore >= 70) {
+                    badge.innerText = "טוב מאוד!";
+                    badge.className = "inline-block mt-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800";
+                } else {
+                    badge.innerText = "נדרש תרגול נוסף";
+                    badge.className = "inline-block mt-1 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800";
+                }
+
+                playSound(finalScore >= 70 ? 'correct' : 'click');
+
+                // Send Score to Firestore Teacher Collection
+                await submitScoreToTeacher(finalScore, correctCount);
+            }
+
+            async function submitScoreToTeacher(finalScore, correctCount) {
+                const statusBox = document.getElementById('submissionStatusBox');
+                const statusIcon = document.getElementById('submissionStatusIcon');
+                const statusText = document.getElementById('submissionStatusText');
+
+                if (!db || !currentUser) {
+                    statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
+                    statusText.innerText = "הציון נשמר מקומית!";
+                    return;
+                }
+
+                try {
+                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    await addDoc(scoresColl, {
+                        studentName: studentName,
+                        studentClass: studentClass,
+                        score: finalScore,
+                        correctCount: correctCount,
+                        totalQuestions: questionsData.length,
+                        timestamp: new Date().toISOString(),
+                        userId: currentUser.uid
+                    });
+
+                    statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+                    statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
+                    statusText.innerText = "הציון נשלח בהצלחה אל המורה!";
+                } catch (e) {
+                    console.error("Failed to submit score:", e);
+                    statusBox.className = "bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+                    statusIcon.className = "fa-solid fa-triangle-exclamation text-amber-600 text-base";
+                    statusText.innerText = "הציון נשמר במכשיר. לא ניתן היה להעלות לשרת.";
+                }
+            }
+
+            function listenToTeacherScores() {
+                if (!db) return;
+                try {
+                    const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    onSnapshot(scoresColl, (snapshot) => {
+                        allScoresCache = [];
+                        snapshot.forEach(doc => {
+                            allScoresCache.push(doc.data());
+                        });
+                        // Sort descending by timestamp
+                        allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                        renderTeacherScores();
+                    }, (error) => {
+                        console.error("Scores error:", error);
+                    });
+                } catch(e) {}
+            }
+
+            function renderTeacherScores() {
+                const container = document.getElementById('teacherScoresContainer');
+                const searchInput = document.getElementById('teacherSearchInput');
+                const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+                if (!container) return;
+
+                const filtered = allScoresCache.filter(item => {
+                    if (!searchTerm) return true;
+                    const nameMatch = (item.studentName || '').toLowerCase().includes(searchTerm);
+                    const classMatch = (item.studentClass || '').toLowerCase().includes(searchTerm);
+                    return nameMatch || classMatch;
+                });
+
+                const countElem = document.getElementById('totalSubmissionsCount');
+                if (countElem) {
+                    countElem.innerText = `סה"כ דיווחים: ${filtered.length}`;
+                }
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 text-purple-300 block"></i>
+                            <p class="font-bold">לא נמצאו ציונים במערכת</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filtered.map(item => {
+                    const dateObj = item.timestamp ? new Date(item.timestamp) : null;
+                    const dateStr = dateObj ? dateObj.toLocaleDateString('he-IL') + ' ' + dateObj.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '-';
+                    const scoreNum = typeof item.score === 'number' ? item.score : 0;
+                    
+                    let scoreColorClass = "text-emerald-600 bg-emerald-50 border-emerald-200";
+                    if (scoreNum < 70) scoreColorClass = "text-amber-600 bg-amber-50 border-amber-200";
+                    if (scoreNum < 50) scoreColorClass = "text-rose-600 bg-rose-50 border-rose-200";
+
+                    return `
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-right hover:border-purple-300 transition">
+                            <div class="sm:col-span-4 font-bold text-slate-900 flex items-center space-x-1.5 space-x-reverse">
+                                <i class="fa-solid fa-user-circle text-purple-500 text-sm"></i>
+                                <span>${escapeHtml(item.studentName || 'תלמיד אנונימי')}</span>
+                            </div>
+                            <div class="sm:col-span-2 text-slate-600 font-medium">
+                                <span class="sm:hidden font-bold text-slate-400">כיתה: </span>${escapeHtml(item.studentClass || '-')}
+                            </div>
+                            <div class="sm:col-span-3">
+                                <span class="inline-block px-2.5 py-0.5 rounded-lg border font-black text-xs ${scoreColorClass}">
+                                    ${scoreNum} / 100 (${item.correctCount || 0}/${item.totalQuestions || 10})
+                                </span>
+                            </div>
+                            <div class="sm:col-span-3 text-[11px] text-slate-400 font-medium">
+                                <i class="fa-regular fa-clock ml-1"></i>${dateStr}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            function escapeHtml(str) {
+                return String(str).replace(/[&<>"']/g, function(m) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    }[m];
+                });
+            }
+
+            window.filterTeacherScores = function() {
+                renderTeacherScores();
+            };
+
+            let isTeacherAuthenticated = false;
+            const FIXED_TEACHER_PIN = "4595";
+
+            window.openTeacherDashboard = function() {
+                playSound('click');
+                if (isTeacherAuthenticated) {
+                    document.getElementById('teacherModal').classList.remove('hidden');
+                    renderTeacherScores();
+                } else {
+                    document.getElementById('teacherAuthModal').classList.remove('hidden');
+                    document.getElementById('teacherPinInput').value = '';
+                    document.getElementById('teacherPinError').classList.add('hidden');
+                }
+            };
+
+            window.verifyTeacherPin = function() {
+                const entered = document.getElementById('teacherPinInput').value.trim();
+                if (entered === FIXED_TEACHER_PIN) {
+                    isTeacherAuthenticated = true;
+                    document.getElementById('teacherAuthModal').classList.add('hidden');
+                    document.getElementById('teacherModal').classList.remove('hidden');
+                    renderTeacherScores();
+                    playSound('correct');
+                } else {
+                    document.getElementById('teacherPinError').classList.remove('hidden');
+                    playSound('wrong');
+                }
+            };
+
+            window.closeTeacherAuthModal = function() {
+                playSound('click');
+                document.getElementById('teacherAuthModal').classList.add('hidden');
+            };
+
+            window.closeTeacherDashboard = function() {
+                playSound('click');
+                document.getElementById('teacherModal').classList.add('hidden');
+            };
+
+            window.shareToClassroom = function() {
+                playSound('click');
+                const pageUrl = window.location.href;
+                const classroomUrl = `https://classroom.google.com/share?url=${encodeURIComponent(pageUrl)}`;
+                window.open(classroomUrl, '_blank', 'width=600,height=600');
+            };
+
+            window.copyClassroomLink = function() {
+                playSound('click');
+                const pageUrl = window.location.href;
+                
+                // Clipboard fallback as per constraints
+                const dummy = document.createElement('input');
+                document.body.appendChild(dummy);
+                dummy.value = pageUrl;
+                dummy.select();
+                document.execCommand('copy');
+                document.body.removeChild(dummy);
+
+                showToast("קישור למשחק הועתק! ניתן להדביק ב-Google Classroom");
+            };
+
+            window.openLexicon = function() {
+                playSound('click');
+                document.getElementById('lexiconModal').classList.remove('hidden');
+            };
+
+            window.closeLexicon = function() {
+                playSound('click');
+                document.getElementById('lexiconModal').classList.add('hidden');
+            };
+
+            function showToast(msg) {
+                const toast = document.getElementById('toastNotification');
+                document.getElementById('toastText').innerText = msg;
+                toast.classList.remove('hidden');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000);
+            }
+        </script>
+    </body>
+    </html>
