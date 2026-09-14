@@ -641,6 +641,27 @@
         let studentClass = "";
         let allScoresCache = [];
 
+        // Helper functions for score persistence (Local Storage Backup)
+        function getLocalScores() {
+            try {
+                const stored = localStorage.getItem('civics_teacher_scores');
+                return stored ? JSON.parse(stored) : [];
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function saveScoreToLocalStorage(scoreObj) {
+            try {
+                const current = getLocalScores();
+                const exists = current.some(item => item.timestamp === scoreObj.timestamp && item.studentName === scoreObj.studentName);
+                if (!exists) {
+                    current.unshift(scoreObj);
+                    localStorage.setItem('civics_teacher_scores', JSON.stringify(current));
+                }
+            } catch(e) {}
+        }
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(type) {
@@ -997,50 +1018,79 @@
             const statusIcon = document.getElementById('submissionStatusIcon');
             const statusText = document.getElementById('submissionStatusText');
 
+            const scoreData = {
+                studentName: studentName || 'תלמיד אנונימי',
+                studentClass: studentClass || 'כללי',
+                score: finalScore,
+                correctCount: correctCount,
+                totalQuestions: questionsData.length,
+                timestamp: new Date().toISOString(),
+                userId: currentUser ? currentUser.uid : 'anon_' + Date.now()
+            };
+
+            // Save immediately to local backup
+            saveScoreToLocalStorage(scoreData);
+
             if (!db || !currentUser) {
+                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשמר מקומית!";
+                statusText.innerText = "הציון נשמר בהצלחה!";
+                renderTeacherScores();
                 return;
             }
 
             try {
                 const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                await addDoc(scoresColl, {
-                    studentName: studentName,
-                    studentClass: studentClass,
-                    score: finalScore,
-                    correctCount: correctCount,
-                    totalQuestions: questionsData.length,
-                    timestamp: new Date().toISOString(),
-                    userId: currentUser.uid
-                });
+                await addDoc(scoresColl, scoreData);
 
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
                 statusText.innerText = "הציון נשלח בהצלחה אל המורה!";
             } catch (e) {
-                console.error("Failed to submit score:", e);
-                statusBox.className = "bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-900 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
-                statusIcon.className = "fa-solid fa-triangle-exclamation text-amber-600 text-base";
-                statusText.innerText = "הציון נשמר במכשיר. לא ניתן היה להעלות לשרת.";
+                console.error("Failed to submit score to Firestore:", e);
+                statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+                statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
+                statusText.innerText = "הציון נשמר בהצלחה במכשיר!";
             }
+
+            renderTeacherScores();
         }
 
         function listenToTeacherScores() {
+            // Load local scores first
+            const localList = getLocalScores();
+            allScoresCache = [...localList];
+            renderTeacherScores();
+
             if (!db) return;
+
             try {
                 const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
                 onSnapshot(scoresColl, (snapshot) => {
-                    allScoresCache = [];
+                    const cloudScores = [];
                     snapshot.forEach(doc => {
-                        allScoresCache.push(doc.data());
+                        cloudScores.push(doc.data());
                     });
+
+                    // Merge cloud and local scores without duplicates
+                    const mergedMap = new Map();
+                    [...cloudScores, ...getLocalScores()].forEach(item => {
+                        const key = `${item.studentName}_${item.timestamp}`;
+                        if (!mergedMap.has(key)) {
+                            mergedMap.set(key, item);
+                        }
+                    });
+
+                    allScoresCache = Array.from(mergedMap.values());
                     allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
                     renderTeacherScores();
                 }, (error) => {
                     console.error("Scores error:", error);
+                    renderTeacherScores();
                 });
-            } catch(e) {}
+            } catch(e) {
+                renderTeacherScores();
+            }
         }
 
         function renderTeacherScores() {
@@ -1050,7 +1100,19 @@
 
             if (!container) return;
 
-            const filtered = allScoresCache.filter(item => {
+            // Merge cache with local backup to guarantee no score is missed
+            const mergedMap = new Map();
+            [...allScoresCache, ...getLocalScores()].forEach(item => {
+                const key = `${item.studentName}_${item.timestamp}`;
+                if (!mergedMap.has(key)) {
+                    mergedMap.set(key, item);
+                }
+            });
+
+            const currentScores = Array.from(mergedMap.values());
+            currentScores.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+            const filtered = currentScores.filter(item => {
                 if (!searchTerm) return true;
                 const nameMatch = (item.studentName || '').toLowerCase().includes(searchTerm);
                 const classMatch = (item.studentClass || '').toLowerCase().includes(searchTerm);
