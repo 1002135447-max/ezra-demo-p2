@@ -129,7 +129,7 @@
 
     <main class="max-w-4xl w-full mx-auto p-3 sm:p-6 flex-grow flex flex-col justify-center">
         
-        <!-- ================= WELCOME / STUDENT DETAILS VIEW ================= -->
+        <!-- WELCOME / STUDENT DETAILS VIEW -->
         <section id="welcomeView" class="space-y-4 sm:space-y-6 text-center animate-fade-in my-auto py-2 sm:py-4">
             <div class="bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white p-5 sm:p-8 rounded-3xl shadow-xl border border-blue-500/20 relative overflow-hidden">
                 <div class="absolute -top-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -172,7 +172,7 @@
             </div>
         </section>
 
-        <!-- ================= ACTIVE QUIZ VIEW ================= -->
+        <!-- ACTIVE QUIZ VIEW -->
         <section id="quizView" class="hidden space-y-4 animate-fade-in">
             
             <!-- Quiz Card Header / Progress -->
@@ -260,7 +260,7 @@
             </div>
         </section>
 
-        <!-- ================= SUMMARY VIEW ================= -->
+        <!-- SUMMARY VIEW -->
         <section id="summaryView" class="hidden space-y-5 animate-fade-in text-center my-auto py-4">
             <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-2xl mx-auto space-y-5">
                 
@@ -373,7 +373,7 @@
                 </button>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                הכניסה ללוח הציונים מוגנת בקוד מורה.
+                הכניסה ללוח הציונים מוגנת בקוד מורה (4595).
             </p>
             <div>
                 <input type="password" id="teacherPinInput" placeholder="הכנס קוד מורה" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2 text-center text-base font-bold tracking-widest text-slate-800 focus:border-purple-600 outline-none">
@@ -395,7 +395,7 @@
                     <i class="fa-solid fa-user-graduate text-yellow-300 text-lg sm:text-xl"></i>
                     <div>
                         <h3 class="font-black text-sm sm:text-base leading-tight">לוח ציונים למורה</h3>
-                        <p class="text-[10px] sm:text-xs text-purple-200">דיווחי ציונים בזמן אמת מהתלמידים</p>
+                        <p class="text-[10px] sm:text-xs text-purple-200">דיווחי ציונים בזמן אמת מהתלמידים (משמר בענן)</p>
                     </div>
                 </div>
                 <button onclick="closeTeacherDashboard()" class="text-white hover:text-yellow-300 p-1 rounded-lg transition">
@@ -446,39 +446,41 @@
             appId: "1:123456789:web:abcdef"
         };
 
-        let app, auth, db, currentUser = null;
+        let app = null;
+        let auth = null;
+        let db = null;
+        let currentUser = null;
         let authPromise = null;
         let inMemoryScores = [];
-
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    loadSavedStudentState();
-                    listenToTeacherScores();
-                }
-            });
-        } catch(e) {
-            console.error("Firebase init fallback:", e);
-        }
 
         async function ensureAuth() {
             if (currentUser) return currentUser;
             if (!authPromise) {
                 authPromise = new Promise((resolve) => {
                     try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            signInWithCustomToken(auth, __initial_auth_token)
+                        if (!app) {
+                            app = initializeApp(firebaseConfig);
+                            auth = getAuth(app);
+                            db = getFirestore(app);
+                        }
+
+                        onAuthStateChanged(auth, (user) => {
+                            if (user) {
+                                currentUser = user;
+                                resolve(user);
+                            }
+                        });
+
+                        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (initialToken) {
+                            signInWithCustomToken(auth, initialToken)
                                 .then(cred => resolve(cred.user))
                                 .catch(() => signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null)));
                         } else {
                             signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null));
                         }
                     } catch(e) {
+                        console.error("Auth init exception:", e);
                         resolve(null);
                     }
                 });
@@ -597,7 +599,7 @@
                 ],
                 correctIndex: 0,
                 hint: "מהי ההבחנה בין חוק שנחקק בנהלים הנכונים (פורמלי) לבין חוק שהוא צודק ושומר על זכויות (מהותי)?",
-                explanation: "שלטון החוק المהותי בוחן את תוכן החוק – החוק חייב להיות ראוי, צודק ולשמור על זכויות האדם והדמוקרטיה, ולא רק להיחקק בצורה טכנית (פורמלית)."
+                explanation: "שלטון החוק המהותי בוחן את תוכן החוק – החוק חייב להיות ראוי, צודק ולשמור על זכויות האדם והדמוקרטיה, ולא רק להיחקק בצורה טכנית (פורמלית)."
             },
             {
                 id: 8,
@@ -656,7 +658,6 @@
         let studentClass = "";
         let allScoresCache = [];
 
-        // Helper functions for score persistence
         function getLocalScores() {
             try {
                 const stored = localStorage.getItem('civics_teacher_scores');
@@ -750,9 +751,10 @@
         }
 
         async function saveStateToCloud() {
-            if (!currentUser || !db) return;
+            const user = await ensureAuth();
+            if (!user || !db) return;
             try {
-                const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'progress', 'currentSession');
+                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'progress', 'currentSession');
                 await setDoc(userDocRef, {
                     studentName: studentName,
                     studentClass: studentClass,
@@ -762,14 +764,15 @@
                     updatedAt: new Date().toISOString()
                 });
             } catch (e) {
-                console.error("Cloud save failed:", e);
+                console.error("Cloud state save failed:", e);
             }
         }
 
         async function loadSavedStudentState() {
-            if (!currentUser || !db) return;
+            const user = await ensureAuth();
+            if (!user || !db) return;
             try {
-                const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'progress', 'currentSession');
+                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'progress', 'currentSession');
                 const docSnap = await getDoc(userDocRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -793,7 +796,7 @@
                     }
                 }
             } catch (e) {
-                console.error("Cloud load failed:", e);
+                console.error("Cloud state load failed:", e);
             }
         }
 
@@ -1035,36 +1038,39 @@
             const statusIcon = document.getElementById('submissionStatusIcon');
             const statusText = document.getElementById('submissionStatusText');
 
+            statusBox.className = "bg-blue-50 border border-blue-200 p-3 rounded-xl text-blue-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
+            statusIcon.className = "fa-solid fa-spinner fa-spin text-blue-600 text-base";
+            statusText.innerText = "שולח ציון למורה...";
+
             const scoreData = {
-                studentName: studentName || 'תלמיד אנונימי',
+                studentName: studentName || 'תלמיד/ה אנונימי/ת',
                 studentClass: studentClass || 'כללי',
                 score: finalScore,
                 correctCount: correctCount,
                 totalQuestions: questionsData.length,
-                timestamp: new Date().toISOString(),
-                userId: currentUser ? currentUser.uid : 'anon_' + Date.now()
+                timestamp: new Date().toISOString()
             };
 
-            // Save immediately to local backup
             saveScoreToLocalStorage(scoreData);
 
-            await ensureAuth();
+            const user = await ensureAuth();
 
-            if (!db || !currentUser) {
+            if (!db || !user) {
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשמר בהצלחה!";
+                statusText.innerText = "הציון נשמר בהצלחה במכשיר!";
                 renderTeacherScores();
                 return;
             }
 
             try {
                 const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                scoreData.userId = user.uid;
                 await addDoc(scoresColl, scoreData);
 
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
-                statusText.innerText = "הציון נשלח בהצלחה אל המורה!";
+                statusText.innerText = "הציון נשמר בענן בהצלחה וזמין למורה בכל עת!";
             } catch (e) {
                 console.error("Failed to submit score to Firestore:", e);
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
@@ -1080,16 +1086,17 @@
             allScoresCache = [...localList];
             renderTeacherScores();
 
-            await ensureAuth();
+            const user = await ensureAuth();
 
-            if (!db) return;
+            if (!db || !user) return;
 
             try {
                 const scoresColl = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
                 onSnapshot(scoresColl, (snapshot) => {
                     const cloudScores = [];
-                    snapshot.forEach(doc => {
-                        cloudScores.push(doc.data());
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data) cloudScores.push(data);
                     });
 
                     // Merge cloud and local scores without duplicates
@@ -1106,10 +1113,11 @@
                     allScoresCache.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
                     renderTeacherScores();
                 }, (error) => {
-                    console.error("Scores error:", error);
+                    console.error("Firestore onSnapshot error:", error);
                     renderTeacherScores();
                 });
             } catch(e) {
+                console.error("Listen to teacher scores failed:", e);
                 renderTeacherScores();
             }
         }
@@ -1121,7 +1129,6 @@
 
             if (!container) return;
 
-            // Merge cache with local backup to guarantee no score is missed
             const mergedMap = new Map();
             [...allScoresCache, ...getLocalScores(), ...inMemoryScores].forEach(item => {
                 if (!item) return;
@@ -1206,11 +1213,12 @@
         let isTeacherAuthenticated = false;
         const FIXED_TEACHER_PIN = "4595";
 
-        window.openTeacherDashboard = function() {
+        window.openTeacherDashboard = async function() {
             playSound('click');
             if (isTeacherAuthenticated) {
                 document.getElementById('teacherModal').classList.remove('hidden');
-                renderTeacherScores();
+                await ensureAuth();
+                listenToTeacherScores();
             } else {
                 document.getElementById('teacherAuthModal').classList.remove('hidden');
                 document.getElementById('teacherPinInput').value = '';
@@ -1218,13 +1226,14 @@
             }
         };
 
-        window.verifyTeacherPin = function() {
+        window.verifyTeacherPin = async function() {
             const entered = document.getElementById('teacherPinInput').value.trim();
             if (entered === FIXED_TEACHER_PIN) {
                 isTeacherAuthenticated = true;
                 document.getElementById('teacherAuthModal').classList.add('hidden');
                 document.getElementById('teacherModal').classList.remove('hidden');
-                renderTeacherScores();
+                await ensureAuth();
+                listenToTeacherScores();
                 playSound('correct');
             } else {
                 document.getElementById('teacherPinError').classList.remove('hidden');
@@ -1249,7 +1258,6 @@
 
         window.closeLexicon = function() {
             playSound('click');
-            document.getElementById('lexiconModal').classList.hidden = true;
             document.getElementById('lexiconModal').classList.add('hidden');
         };
 
@@ -1261,6 +1269,13 @@
                 toast.classList.add('hidden');
             }, 3000);
         }
+
+        // Initialize application on startup
+        window.addEventListener('DOMContentLoaded', async () => {
+            await ensureAuth();
+            loadSavedStudentState();
+            listenToTeacherScores();
+        });
     </script>
 </body>
 </html>
