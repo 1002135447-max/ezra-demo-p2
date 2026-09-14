@@ -29,18 +29,6 @@
             padding: 0;
         }
 
-        .custom-card {
-            background: #ffffff;
-            border-radius: 1.25rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-            border: 2px solid #e2e8f0;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .custom-card:hover {
-            border-color: #3b82f6;
-        }
-
         .btn-action {
             transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
         }
@@ -49,7 +37,7 @@
             transform: scale(0.97);
         }
 
-        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+        button:focus-visible, input:focus-visible {
             outline: 3px solid #3b82f6;
             outline-offset: 2px;
         }
@@ -76,25 +64,24 @@
 
         @media print {
             .no-print { display: none !important; }
-            .print-only { display: block !important; }
             body { background: white; color: black; }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-blue-100 antialiased bg-slate-50 pb-16 sm:pb-0">
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-100 antialiased bg-slate-50">
 
     <!-- Top Navigation Header -->
     <header class="bg-blue-700 text-white shadow-md sticky top-0 z-30 no-print">
-        <div class="max-w-5xl mx-auto px-3 py-2 sm:px-6 flex items-center justify-between">
+        <div class="max-w-5xl mx-auto px-3 py-2.5 sm:px-6 flex items-center justify-between">
             
             <!-- Logo / Home Link -->
             <div class="flex items-center space-x-2 space-x-reverse cursor-pointer" onclick="goToHome()">
-                <div class="bg-white text-blue-700 rounded-xl font-bold text-base sm:text-lg shadow-inner flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 shrink-0">
+                <div class="bg-white text-blue-700 rounded-xl font-bold text-base sm:text-lg shadow-inner flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 shrink-0">
                     <i class="fa-solid fa-landmark text-base sm:text-xl"></i>
                 </div>
                 <div class="leading-tight">
                     <h1 class="text-xs sm:text-base font-black tracking-wide">מסע בדמוקרטיה</h1>
-                    <p class="text-[9px] sm:text-xs text-blue-100 font-medium hidden xs:block">תרגול לבגרות באזרחות</p>
+                    <p class="text-[10px] sm:text-xs text-blue-100 font-medium">תרגול לבגרות באזרחות</p>
                 </div>
             </div>
 
@@ -371,7 +358,7 @@
         </div>
     </div>
 
-    <!-- TEACHER AUTH MODAL (PIN PROTECTION) -->
+    <!-- TEACHER AUTH MODAL (FIXED PIN 4595) -->
     <div id="teacherAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 animate-fade-in">
         <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-sm p-5 text-right space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -454,10 +441,9 @@
     <!-- FIREBASE & GAME LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Primary Artifact App ID & Firebase Config setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'civics-democracy-game-v1';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
@@ -468,7 +454,6 @@
         let authPromise = null;
         let inMemoryScores = [];
 
-        // Ensure user is authenticated before Firestore operations
         async function ensureAuth() {
             if (currentUser) return currentUser;
             if (!authPromise) {
@@ -1020,12 +1005,10 @@
                 createdAt: Date.now()
             };
 
-            // Save locally immediately
             saveScoreToLocalStorage(scoreData);
 
             let savedToCloud = false;
 
-            // Save to Firestore Cloud Collection
             try {
                 const user = await ensureAuth();
                 if (db && user) {
@@ -1067,7 +1050,6 @@
                 unsubscribeScoresListener = onSnapshot(scoresColl, (snapshot) => {
                     const cloudScoresMap = new Map();
 
-                    // Load local scores first
                     [...getLocalScores(), ...inMemoryScores].forEach(item => {
                         if (item && item.studentName && item.timestamp) {
                             const key = `${item.studentName}_${item.studentClass}_${item.score}_${item.timestamp}`;
@@ -1075,7 +1057,6 @@
                         }
                     });
 
-                    // Add / update with Cloud scores
                     snapshot.forEach(docSnap => {
                         const data = docSnap.data();
                         if (data && data.studentName) {
@@ -1292,7 +1273,6 @@
             }, 3000);
         }
 
-        // Initialize application on startup
         window.addEventListener('DOMContentLoaded', async () => {
             await ensureAuth();
             listenToTeacherScores();
