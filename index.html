@@ -447,18 +447,13 @@
         };
 
         let app, auth, db, currentUser = null;
+        let authPromise = null;
+        let inMemoryScores = [];
 
-        // Initialize Firebase
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
-
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
-            } else {
-                signInAnonymously(auth);
-            }
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
@@ -469,6 +464,26 @@
             });
         } catch(e) {
             console.error("Firebase init fallback:", e);
+        }
+
+        async function ensureAuth() {
+            if (currentUser) return currentUser;
+            if (!authPromise) {
+                authPromise = new Promise((resolve) => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            signInWithCustomToken(auth, __initial_auth_token)
+                                .then(cred => resolve(cred.user))
+                                .catch(() => signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null)));
+                        } else {
+                            signInAnonymously(auth).then(cred => resolve(cred.user)).catch(() => resolve(null));
+                        }
+                    } catch(e) {
+                        resolve(null);
+                    }
+                });
+            }
+            return authPromise;
         }
 
         const questionsData = [
@@ -641,18 +656,20 @@
         let studentClass = "";
         let allScoresCache = [];
 
-        // Helper functions for score persistence (Local Storage Backup)
+        // Helper functions for score persistence
         function getLocalScores() {
             try {
                 const stored = localStorage.getItem('civics_teacher_scores');
-                return stored ? JSON.parse(stored) : [];
+                const parsed = stored ? JSON.parse(stored) : [];
+                return Array.isArray(parsed) ? parsed : [];
             } catch(e) {
-                return [];
+                return inMemoryScores;
             }
         }
 
         function saveScoreToLocalStorage(scoreObj) {
             try {
+                inMemoryScores.unshift(scoreObj);
                 const current = getLocalScores();
                 const exists = current.some(item => item.timestamp === scoreObj.timestamp && item.studentName === scoreObj.studentName);
                 if (!exists) {
@@ -1031,6 +1048,8 @@
             // Save immediately to local backup
             saveScoreToLocalStorage(scoreData);
 
+            await ensureAuth();
+
             if (!db || !currentUser) {
                 statusBox.className = "bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse max-w-md mx-auto";
                 statusIcon.className = "fa-solid fa-circle-check text-emerald-600 text-base";
@@ -1056,11 +1075,12 @@
             renderTeacherScores();
         }
 
-        function listenToTeacherScores() {
-            // Load local scores first
+        async function listenToTeacherScores() {
             const localList = getLocalScores();
             allScoresCache = [...localList];
             renderTeacherScores();
+
+            await ensureAuth();
 
             if (!db) return;
 
@@ -1074,7 +1094,8 @@
 
                     // Merge cloud and local scores without duplicates
                     const mergedMap = new Map();
-                    [...cloudScores, ...getLocalScores()].forEach(item => {
+                    [...cloudScores, ...getLocalScores(), ...inMemoryScores].forEach(item => {
+                        if (!item) return;
                         const key = `${item.studentName}_${item.timestamp}`;
                         if (!mergedMap.has(key)) {
                             mergedMap.set(key, item);
@@ -1102,7 +1123,8 @@
 
             // Merge cache with local backup to guarantee no score is missed
             const mergedMap = new Map();
-            [...allScoresCache, ...getLocalScores()].forEach(item => {
+            [...allScoresCache, ...getLocalScores(), ...inMemoryScores].forEach(item => {
+                if (!item) return;
                 const key = `${item.studentName}_${item.timestamp}`;
                 if (!mergedMap.has(key)) {
                     mergedMap.set(key, item);
